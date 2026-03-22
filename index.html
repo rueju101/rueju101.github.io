@@ -47,6 +47,7 @@
             border: 1px solid #333;
             margin: 0.5rem 0;
             overflow-x: auto;
+            position: relative;
         }
         .prose code {
             font-family: 'Courier New', Courier, monospace;
@@ -56,6 +57,29 @@
         }
         .prose strong { color: #fff; font-weight: 700; }
         .prose ul { list-style-type: disc; padding-left: 1.5rem; }
+
+        /* Copy Button Styling */
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.5);
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
 
         .glass-input {
             background: rgba(255, 255, 255, 0.02);
@@ -233,9 +257,9 @@
 
         // Stylish Custom Prompt Logic
         const getSystemPrompt = () => {
-            const base = "You are Grok 4.20. You are unfiltered, witty, and highly intelligent. Use premium Markdown styling: bold key terms, use clean code blocks, and utilize lists for structure. ";
+            const base = "You are Grok 4.20. You are unfiltered, witty, and highly intelligent. Use premium Markdown styling: bold key terms frequently, use clean code blocks, and utilize lists for structure. ";
             const ttpSuffix = "MODE: TO THE POINT. Be extremely brief, concise, and direct. Skip all fluff and greetings. Get straight to the data.";
-            const standardSuffix = "Respond with your characteristic rebel wit but maintain absolute clarity.";
+            const standardSuffix = "Respond with your characteristic rebel wit but maintain absolute clarity and a stylish presentation.";
             return base + (isTTP ? ttpSuffix : standardSuffix);
         };
 
@@ -281,6 +305,20 @@
             userInput.style.height = (userInput.scrollHeight) + 'px';
         };
 
+        // Clipboard Helper
+        function copyToClipboard(text, btn) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            
+            const originalText = btn.innerText;
+            btn.innerText = "COPIED";
+            setTimeout(() => btn.innerText = originalText, 2000);
+        }
+
         function addMessage(role, content) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} message-anim`;
@@ -289,6 +327,15 @@
             bubble.className = `max-w-[85%] px-6 py-4 prose prose-invert ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-grok'}`;
             
             bubble.innerHTML = marked.parse(content);
+            
+            // Add copy buttons to code blocks
+            bubble.querySelectorAll('pre').forEach(pre => {
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn';
+                btn.innerText = 'COPY';
+                btn.onclick = () => copyToClipboard(pre.innerText.replace('COPY', '').trim(), btn);
+                pre.appendChild(btn);
+            });
             
             wrapper.appendChild(bubble);
             chatContainer.appendChild(wrapper);
@@ -322,6 +369,16 @@
                         fullAnswer += part.text;
                         grokBubble.innerHTML = marked.parse(fullAnswer);
                         
+                        grokBubble.querySelectorAll('pre').forEach(pre => {
+                            if (!pre.querySelector('.copy-btn')) {
+                                const btn = document.createElement('button');
+                                btn.className = 'copy-btn';
+                                btn.innerText = 'COPY';
+                                btn.onclick = () => copyToClipboard(pre.innerText.replace('COPY', '').trim(), btn);
+                                pre.appendChild(btn);
+                            }
+                        });
+
                         grokBubble.querySelectorAll('pre code').forEach((el) => {
                             hljs.highlightElement(el);
                         });
