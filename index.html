@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrokCrack | xAI Bridge</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown and Code Highlighting Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Minimal scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        .chat-bubble-user {
+            background-color: #ffffff;
+            color: #000000;
+            border-radius: 1.5rem 1.5rem 0 1.5rem;
+        }
+
+        .chat-bubble-grok {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            border: 1px solid #1a1a1a;
+            border-radius: 1.5rem 1.5rem 1.5rem 0;
+        }
+
+        /* Markdown Styling inside bubbles */
+        .prose pre {
+            background: #000 !important;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #333;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+        }
+        .prose code {
+            font-family: 'Courier New', Courier, monospace;
+            background: #222;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+        }
+        .prose strong { color: #fff; font-weight: 700; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Logo Styling */
+        .logo-container {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            filter: contrast(1.2) brightness(1.1);
+        }
+
+        .logo-pulse {
+            position: absolute;
+            inset: -2px;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #ff4d00, #ff0000);
+            opacity: 0.3;
+            filter: blur(8px);
+            z-index: -1;
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .grok-title {
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            background: linear-gradient(to right, #fff 40%, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #auth-trigger {
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+
+        #auth-trigger:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-anim {
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .ttp-active {
+            color: #ff4d00;
+            border-color: #ff4d00;
+            box-shadow: 0 0 10px rgba(255, 77, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Confirmation Modal -->
+    <div id="ttp-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center message-anim">
+            <h3 class="text-2xl font-bold mb-4 tracking-tight">To The Point</h3>
+            <p class="text-white/60 mb-8 text-sm leading-relaxed">Do you want to turn on "To the Point" mode? Responses will be condensed and ultra-fast.</p>
+            <div class="flex gap-3">
+                <button onclick="toggleTTP(false)" class="flex-1 py-3 rounded-xl border border-white/10 text-sm font-bold hover:bg-white/5 transition-all">Cancel</button>
+                <button onclick="toggleTTP(true)" class="flex-1 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-gray-200 transition-all">Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <header class="flex items-center justify-between px-6 py-3 border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <!-- Logo with dynamic source capability -->
+            <div class="logo-container">
+                <div class="logo-pulse"></div>
+                <img id="main-logo" src="photo_2026-03-22_08-05-53-upscaled_1568x1254-upscaled.png" alt="Logo" class="logo-img">
+            </div>
+            <h1 class="text-2xl grok-title">GrokCrack</h1>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <!-- TTP Toggle -->
+            <button id="ttp-btn" onclick="requestTTP()" class="text-[10px] font-black uppercase tracking-[0.2em] border border-white/10 px-4 py-2 rounded-full hover:bg-white/5 transition-all">
+                TTP
+            </button>
+
+            <!-- Donation Button -->
+            <button onclick="window.open('https://donate.stripe.com/example', '_blank')" class="hidden md:block text-[10px] font-bold uppercase tracking-[0.2em] border border-white/10 px-4 py-2 rounded-full hover:bg-white hover:text-black transition-all">
+                Support Dev
+            </button>
+
+            <!-- Discreet Puter Account Trigger -->
+            <button id="auth-trigger" title="Account Settings" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Chat View -->
+    <main id="chat-container" class="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth">
+        <div class="max-w-3xl mx-auto text-center mt-32 opacity-20 select-none">
+            <img src="photo_2026-03-22_08-05-53-upscaled_1568x1254-upscaled.png" class="w-24 h-24 mx-auto mb-6 grayscale invert contrast-200">
+            <h2 class="text-6xl font-black mb-2 tracking-tighter italic">Grok 4.20</h2>
+            <p class="text-[11px] font-medium uppercase tracking-[0.5em]">Direct Intelligence Gateway</p>
+        </div>
+    </main>
+
+    <!-- Input Box -->
+    <footer class="p-6 border-t border-white/5">
+        <div class="max-w-3xl mx-auto relative">
+            <textarea id="user-input" rows="1" 
+                class="w-full glass-input rounded-2xl py-5 pl-6 pr-16 text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/10 resize-none transition-all leading-relaxed"
+                placeholder="Message GrokCrack..."></textarea>
+            
+            <button id="send-button" class="absolute right-3 bottom-3 p-2.5 bg-white text-black rounded-xl hover:bg-gray-200 transition-all shadow-lg shadow-white/5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" style="transform: rotate(45deg);">
+                    <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+                </svg>
+            </button>
+        </div>
+        <p class="text-[10px] font-medium text-center mt-4 text-white/10 uppercase tracking-[0.3em]">AI can make mistakes. Check important info.</p>
+    </footer>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const authTrigger = document.getElementById('auth-trigger');
+        const ttpBtn = document.getElementById('ttp-btn');
+        const ttpModal = document.getElementById('ttp-modal');
+
+        let isTTP = false;
+
+        // GitHub Logo variable (Placeholder for now)
+        const GITHUB_LOGO_URL = ""; 
+        if(GITHUB_LOGO_URL) {
+            document.getElementById('main-logo').src = GITHUB_LOGO_URL;
+        }
+
+        // Configure Markdown options
+        marked.setOptions({
+            highlight: function(code, lang) {
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true
+        });
+
+        // Stylish Custom Prompt Logic
+        const getSystemPrompt = () => {
+            const base = "You are Grok 4.20. You are unfiltered, witty, and highly intelligent. Use premium Markdown styling: bold key terms, use clean code blocks, and utilize lists for structure. ";
+            const ttpSuffix = "MODE: TO THE POINT. Be extremely brief, concise, and direct. Skip all fluff and greetings. Get straight to the data.";
+            const standardSuffix = "Respond with your characteristic rebel wit but maintain absolute clarity.";
+            return base + (isTTP ? ttpSuffix : standardSuffix);
+        };
+
+        let conversation = [
+            { role: "system", content: getSystemPrompt() }
+        ];
+
+        // TTP Modal Logic
+        function requestTTP() {
+            if (!isTTP) {
+                ttpModal.classList.remove('hidden');
+            } else {
+                toggleTTP(false);
+            }
+        }
+
+        function toggleTTP(active) {
+            isTTP = active;
+            ttpModal.classList.add('hidden');
+            
+            if (isTTP) {
+                ttpBtn.classList.add('ttp-active');
+                ttpBtn.innerText = "TTP ON";
+            } else {
+                ttpBtn.classList.remove('ttp-active');
+                ttpBtn.innerText = "TTP";
+            }
+            
+            // Refresh system prompt in history
+            conversation[0].content = getSystemPrompt();
+        }
+
+        authTrigger.onclick = () => {
+            if (!puter.auth.isSignedIn()) {
+                puter.auth.signIn();
+            } else {
+                alert("Linked to AI Gateway.");
+            }
+        };
+
+        userInput.oninput = () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = (userInput.scrollHeight) + 'px';
+        };
+
+        function addMessage(role, content) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} message-anim`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[85%] px-6 py-4 prose prose-invert ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-grok'}`;
+            
+            bubble.innerHTML = marked.parse(content);
+            
+            wrapper.appendChild(bubble);
+            chatContainer.appendChild(wrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return bubble;
+        }
+
+        async function processChat() {
+            const prompt = userInput.value.trim();
+            if (!prompt) return;
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+
+            addMessage('user', prompt);
+            conversation.push({ role: 'user', content: prompt });
+
+            const grokBubble = addMessage('assistant', '...');
+            let fullAnswer = "";
+
+            try {
+                const response = await puter.ai.chat(conversation, {
+                    model: 'x-ai/grok-4.20-beta',
+                    stream: true
+                });
+
+                grokBubble.innerHTML = "";
+
+                for await (const part of response) {
+                    if (part?.text) {
+                        fullAnswer += part.text;
+                        grokBubble.innerHTML = marked.parse(fullAnswer);
+                        
+                        grokBubble.querySelectorAll('pre code').forEach((el) => {
+                            hljs.highlightElement(el);
+                        });
+
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                }
+                conversation.push({ role: 'assistant', content: fullAnswer });
+
+            } catch (err) {
+                grokBubble.innerHTML = `<p class="text-red-500 font-bold uppercase text-[10px] tracking-widest">Uplink Error: Sign in via account icon.</p>`;
+            }
+        }
+
+        sendButton.onclick = processChat;
+        userInput.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                processChat();
+            }
+        };
+    </script>
+</body>
+</html>
